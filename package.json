@@ -4,7 +4,6 @@
   "private": true,
   "description": "SaaS Factory OS -- Interfaz Visual de Producción 24/7 en la Nube",
   "scripts": {
-    "dev": "npx serve .",
-    "build": "echo 'Static UI ready for Cloudflare Pages'"
+    "build": "node build.mjs"
   }
 }
