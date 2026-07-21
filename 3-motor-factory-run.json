@@ -1,0 +1,133 @@
+{
+    "name":  "🏭 Fábrica Viva — Motor (factory-run)",
+    "nodes":  [
+                  {
+                      "id":  "wh-run",
+                      "name":  "Recibir orden",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       0,
+                                       0
+                                   ],
+                      "notes":  "La interfaz envía aquí lo que escribes: POST {project, prompt}.",
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "factory-run",
+                                         "responseMode":  "onReceived",
+                                         "options":  {
+                                                         "allowedOrigins":  "*"
+                                                     }
+                                     },
+                      "webhookId":  "39001884-2bad-41e9-993a-51a385fa61aa"
+                  },
+                  {
+                      "id":  "code-engine",
+                      "name":  "Motor del proyecto",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       260,
+                                       0
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "// ══════════════════════════════════════════════════════════════\n// MOTOR DE LA FÁBRICA — convierte tu orden en un proyecto real\n// ══════════════════════════════════════════════════════════════\n// Recibe: { project: \u0027nombre corto\u0027, prompt: \u0027todo tu contexto\u0027 }\n// 1. Emite eventos al bus (los robots representan el avance)\n// 2. GENERA un prototipo web real a partir del prompt\n// 3. Lo publica en /webhook/factory-app?id=... y entrega la URL\n//\n// ➤ Para conectar tu SaaS Factory v7 real: reemplaza la sección\n//   \"GENERADOR\" por tus workflows/agentes IA, y pon su URL final\n//   en project.done → url.\n\nconst base = \u0027https://n8n-n8n.gpr07a.easypanel.host/webhook/factory-event\u0027;\nconst selfBase = \u0027https://n8n-n8n.gpr07a.easypanel.host/webhook/factory-app\u0027;\nconst b = $json.body || {};\nconst project = b.project || \u0027Proyecto sin nombre\u0027;\nconst prompt = b.prompt || project;\nconst post = (ev) =\u003e this.helpers.httpRequest({ method: \u0027POST\u0027, url: base, body: ev, json: true });\nconst sleep = (ms) =\u003e new Promise(r =\u003e setTimeout(r, ms));\n\nawait post({ type: \u0027project.start\u0027, project });\nawait post({ type: \u0027log\u0027, agent: \u0027Nova\u0027, project, message: \u0027Contexto recibido: \u0027 + prompt.slice(0, 200), level: \u0027INFO\u0027 });\n\n// ETAPA 1 — Nova analiza el pedido\nawait post({ type: \u0027task.start\u0027, agent: \u0027Nova\u0027, project, detail: \u0027inició: analizó el pedido y definió la estructura\u0027 });\nconst feats = prompt.split(/,| con | y (?=[a-záéíóúñ])/i)\n  .map(s =\u003e s.trim()).filter(s =\u003e s.length \u003e 3 \u0026\u0026 s.length \u003c 90).slice(0, 6);\nawait sleep(2500);\nawait post({ type: \u0027task.done\u0027, agent: \u0027Nova\u0027, project, detail: \u0027analizó el pedido y definió la estructura\u0027 });\n\n// ETAPA 2 — Byte construye el prototipo (GENERADOR: aquí va tu fábrica real)\nawait post({ type: \u0027task.start\u0027, agent: \u0027Byte\u0027, project, detail: \u0027inició: construyó el prototipo del proyecto\u0027 });\nconst esc = (s) =\u003e String(s).replace(/\u0026/g, \u0027\u0026amp;\u0027).replace(/\u003c/g, \u0027\u0026lt;\u0027);\nconst cards = feats.map((f, i) =\u003e\n  \u0027\u003cdiv class=\"card\"\u003e\u003cdiv class=\"n\"\u003e\u0027 + String(i + 1).padStart(2, \u00270\u0027) + \u0027\u003c/div\u003e\u003cp\u003e\u0027 + esc(f) + \u0027\u003c/p\u003e\u003c/div\u003e\u0027\n).join(\u0027\u0027);\nconst html = \u0027\u003c!doctype html\u003e\u003chtml lang=\"es\"\u003e\u003chead\u003e\u003cmeta charset=\"utf-8\"\u003e\u0027 +\n  \u0027\u003cmeta name=\"viewport\" content=\"width=device-width,initial-scale=1\"\u003e\u0027 +\n  \u0027\u003ctitle\u003e\u0027 + esc(project) + \u0027\u003c/title\u003e\u003cstyle\u003e\u0027 +\n  \u0027*{box-sizing:border-box;margin:0}body{font-family:Segoe UI,system-ui,sans-serif;background:#0b1024;color:#eef0ff}\u0027 +\n  \u0027.hero{padding:90px 24px 70px;text-align:center;background:radial-gradient(900px 400px at 50% -10%,#2b3fae55,transparent)}\u0027 +\n  \u0027.tag{display:inline-block;border:1px solid #6d7bff66;color:#aab4ff;border-radius:99px;padding:6px 16px;font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:22px}\u0027 +\n  \u0027h1{font-size:clamp(32px,6vw,58px);letter-spacing:-.02em;margin-bottom:14px}\u0027 +\n  \u0027.sub{color:#9aa3d8;max-width:640px;margin:0 auto 30px;line-height:1.6}\u0027 +\n  \u0027.cta{display:inline-block;background:#6d7bff;color:#fff;padding:13px 30px;border-radius:12px;text-decoration:none;font-weight:700}\u0027 +\n  \u0027.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;max-width:980px;margin:50px auto;padding:0 24px}\u0027 +\n  \u0027.card{background:#141a3f;border:1px solid #2a3370;border-radius:14px;padding:22px}\u0027 +\n  \u0027.card .n{color:#6d7bff;font-weight:800;margin-bottom:8px}\u0027 +\n  \u0027.card p{color:#c8cdf5;line-height:1.5}\u0027 +\n  \u0027footer{text-align:center;color:#5a639c;padding:40px;font-size:12px}\u0027 +\n  \u0027\u003c/style\u003e\u003c/head\u003e\u003cbody\u003e\u0027 +\n  \u0027\u003cdiv class=\"hero\"\u003e\u003cspan class=\"tag\"\u003ePrototipo generado\u003c/span\u003e\u003ch1\u003e\u0027 + esc(project) + \u0027\u003c/h1\u003e\u0027 +\n  \u0027\u003cp class=\"sub\"\u003e\u0027 + esc(prompt) + \u0027\u003c/p\u003e\u003ca class=\"cta\" href=\"#f\"\u003eVer características\u003c/a\u003e\u003c/div\u003e\u0027 +\n  \u0027\u003cdiv class=\"grid\" id=\"f\"\u003e\u0027 + (cards || \u0027\u003cdiv class=\"card\"\u003e\u003cp\u003ePrototipo inicial del proyecto\u003c/p\u003e\u003c/div\u003e\u0027) + \u0027\u003c/div\u003e\u0027 +\n  \u0027\u003cfooter\u003eConstruido por 🏭 SaaS Factory OS — prototipo v1 · este generador se reemplaza por tu fábrica real\u003c/footer\u003e\u0027 +\n  \u0027\u003c/body\u003e\u003c/html\u003e\u0027;\nconst sd = $getWorkflowStaticData(\u0027global\u0027);\nif (!sd.apps) sd.apps = {};\nconst appId = Date.now().toString(36);\nsd.apps[appId] = html;\nconst keys = Object.keys(sd.apps);\nif (keys.length \u003e 20) delete sd.apps[keys[0]];\nawait sleep(2000);\nawait post({ type: \u0027task.done\u0027, agent: \u0027Byte\u0027, project, detail: \u0027construyó el prototipo del proyecto\u0027 });\n\n// ETAPA 3 — Vega verifica\nawait post({ type: \u0027task.start\u0027, agent: \u0027Vega\u0027, project, detail: \u0027inició: verificó el prototipo\u0027 });\nawait sleep(1800);\nawait post({ type: \u0027task.done\u0027, agent: \u0027Vega\u0027, project, detail: \u0027verificó el prototipo\u0027 });\n\n// ETAPA 4 — Eco publica\nawait post({ type: \u0027task.start\u0027, agent: \u0027Eco\u0027, project, detail: \u0027inició: publicó el proyecto en línea\u0027 });\nawait sleep(1500);\nawait post({ type: \u0027task.done\u0027, agent: \u0027Eco\u0027, project, detail: \u0027publicó el proyecto en línea\u0027 });\n\n// ENTREGA — con la URL real del prototipo servido por n8n\nconst url = selfBase + \u0027?id=\u0027 + appId;\nawait post({ type: \u0027project.done\u0027, project, url });\nreturn [{ json: { ok: true, project, url } }];\n"
+                                     }
+                  },
+                  {
+                      "id":  "wh-app",
+                      "name":  "Servir proyecto",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       0,
+                                       220
+                                   ],
+                      "notes":  "Sirve el prototipo generado: GET /webhook/factory-app?id=...",
+                      "parameters":  {
+                                         "httpMethod":  "GET",
+                                         "path":  "factory-app",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+                                                         "allowedOrigins":  "*"
+                                                     }
+                                     },
+                      "webhookId":  "f2347746-b917-4049-a95b-0c04ba4011fe"
+                  },
+                  {
+                      "id":  "code-app",
+                      "name":  "Preparar página",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       260,
+                                       220
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const sd = $getWorkflowStaticData(\u0027global\u0027);\nconst id = ($json.query || {}).id;\nconst html = (sd.apps || {})[id] ||\n  \u0027\u003c!doctype html\u003e\u003cmeta charset=\"utf-8\"\u003e\u003cbody style=\"font-family:sans-serif;background:#0b1024;color:#eef0ff;display:grid;place-items:center;height:100vh;margin:0\"\u003e\u003cdiv style=\"text-align:center\"\u003e\u003ch1\u003eProyecto no encontrado\u003c/h1\u003e\u003cp\u003eEl prototipo expiró o el ID es incorrecto.\u003c/p\u003e\u003c/div\u003e\u003c/body\u003e\u0027;\nreturn [{ json: { html } }];\n"
+                                     }
+                  },
+                  {
+                      "id":  "respond-app",
+                      "name":  "Responder HTML",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       520,
+                                       220
+                                   ],
+                      "parameters":  {
+                                         "respondWith":  "text",
+                                         "responseBody":  "={{ $json.html }}",
+                                         "options":  {
+                                                         "responseHeaders":  {
+                                                                                 "entries":  [
+                                                                                                 {
+                                                                                                     "name":  "Content-Type",
+                                                                                                     "value":  "text/html; charset=utf-8"
+                                                                                                 }
+                                                                                             ]
+                                                                             }
+                                                     }
+                                     }
+                  }
+              ],
+    "connections":  {
+                        "Recibir orden":  {
+                                              "main":  [
+                                                           [
+                                                               {
+                                                                   "node":  "Motor del proyecto",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                                       ]
+                                          },
+                        "Servir proyecto":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Preparar página",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Preparar página":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Responder HTML",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1"
+                 }
+}

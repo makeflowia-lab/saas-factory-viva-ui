@@ -1,0 +1,35 @@
+{
+  "name": "🏭 Fábrica Viva — Pipeline de ejemplo",
+  "nodes": [
+    {
+      "id": "wh-demo",
+      "name": "Iniciar proyecto",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "notes": "POST {\"project\":\"Nombre\"} — dispara un proyecto real por etapas. Copia este patrón dentro de tus pipelines reales.",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "factory-demo",
+        "responseMode": "onReceived",
+        "options": { "allowedOrigins": "*" }
+      }
+    },
+    {
+      "id": "code-run",
+      "name": "Ejecutar etapas y emitir eventos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0],
+      "parameters": {
+        "jsCode": "// PATRÓN PARA TUS PIPELINES REALES:\n// en cada etapa de tu SaaS Factory, emite task.start antes de trabajar\n// y task.done al terminar. Aquí las \"etapas\" son pausas de ejemplo —\n// en tu pipeline real serían tus nodos de verdad (crear repo, desplegar, etc.)\nconst base = 'https://n8n-n8n.gpr07a.easypanel.host/webhook/factory-event';\nconst project = ($json.body && $json.body.project) || 'Proyecto desde n8n';\nconst post = (ev) => this.helpers.httpRequest({ method: 'POST', url: base, body: ev, json: true });\nconst sleep = (ms) => new Promise(r => setTimeout(r, ms));\n\nawait post({ type: 'project.start', project });\n\nconst etapas = [\n  ['Nova', 'definió la arquitectura y los módulos', 3500],\n  ['Byte', 'construyó el backend y desplegó la API', 5000],\n  ['Vega', 'validó métricas y datos de prueba', 3500],\n  ['Mila', 'preparó la campaña de lanzamiento', 3500],\n  ['Eco', 'publicó el anuncio para la comunidad', 3000]\n];\n\nfor (const [agent, detail, ms] of etapas) {\n  await post({ type: 'task.start', agent, project, detail: 'inició: ' + detail });\n  await sleep(ms); // <-- aquí va tu trabajo real\n  await post({ type: 'task.done', agent, project, detail });\n}\n\nawait post({ type: 'project.done', project });\nreturn [{ json: { ok: true, project } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Iniciar proyecto": {
+      "main": [[{ "node": "Ejecutar etapas y emitir eventos", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

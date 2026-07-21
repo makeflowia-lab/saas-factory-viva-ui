@@ -1,0 +1,76 @@
+{
+  "name": "🏭 Fábrica Viva — Bus de Eventos",
+  "nodes": [
+    {
+      "id": "wh-ingest",
+      "name": "Webhook Ingesta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "notes": "Recibe eventos reales del proyecto: POST {type, agent, project, detail, level}",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "factory-event",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "code-store",
+      "name": "Guardar evento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0],
+      "parameters": {
+        "jsCode": "const sd = $getWorkflowStaticData('global');\nif (!Array.isArray(sd.events)) sd.events = [];\nconst b = $json.body || {};\nconst ev = {\n  id: (sd.lastId = (sd.lastId || 0) + 1),\n  type: b.type || 'log',\n  agent: b.agent ?? null,\n  project: b.project || b.name || null,\n  detail: b.detail || b.message || '',\n  level: b.level || 'INFO',\n  url: b.url || null,\n  ts: new Date().toISOString()\n};\nsd.events.push(ev);\nif (sd.events.length > 400) sd.events.splice(0, sd.events.length - 400);\nreturn [{ json: { ok: true, stored: ev } }];"
+      }
+    },
+    {
+      "id": "wh-feed",
+      "name": "Webhook Feed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 220],
+      "notes": "La interfaz Fábrica Viva consulta aquí: GET ?since=<ultimoId>",
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "factory-feed",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "code-read",
+      "name": "Leer eventos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 220],
+      "parameters": {
+        "jsCode": "const sd = $getWorkflowStaticData('global');\nconst q = $json.query || {};\nconst since = Number(q.since || 0);\nconst events = (sd.events || []).filter(e => e.id > since);\nreturn [{ json: { events, lastId: sd.lastId || 0 } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Ingesta": {
+      "main": [[{ "node": "Guardar evento", "type": "main", "index": 0 }]]
+    },
+    "Webhook Feed": {
+      "main": [[{ "node": "Leer eventos", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
