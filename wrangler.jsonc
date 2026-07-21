@@ -1,5 +1,9 @@
 {
   "name": "saas-factory-viva-ui",
-  "pages_build_output_dir": "dist",
-  "compatibility_date": "2026-07-21"
+  "main": "worker.js",
+  "compatibility_date": "2026-07-21",
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS"
+  }
 }
